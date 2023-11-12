@@ -332,35 +332,32 @@ def render_analyst_forecast_tab():
 
         # Fetch HTML content
         response = requests.get(analyst_forecast_url)
-        print(response.text)  # Print HTML content
-        soup = BeautifulSoup(response.text, 'html.parser')
-        print(soup)  # Print the soup object
-        print(soup.prettify())  # Print the prettified HTML
-        
-        # Extract company name and stock price forecast
-        company_name_element = soup.find('h1', class_='company')
-        stock_price_forecast_element = soup.find('div', class_='stock-price-forecast')
-        analyst_ratings_element = soup.find('div', class_='analyst-ratings')
-        # Check if elements are found before accessing text attribute
-        if company_name_element:
-            company_name = company_name_element.text.strip()
-        else:
-            company_name = "N/A"
+        if response.status_code != 200:
+            st.error("Failed to retrieve data from the website.")
+            return
 
-        if stock_price_forecast_element:
-            stock_price_forecast = stock_price_forecast_element.text.strip()
-        else:
-            stock_price_forecast = "N/A"
-        if analyst_ratings_element:
-            analyst_ratings = analyst_ratings_element.text.strip()
-        else:
-            analyst_ratings = "N/A"
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # Extract company name, stock price forecast, and analyst ratings
+        try:
+            company_name_element = soup.find('h1', class_='mb-0 text-2xl font-bold text-default sm:text-[26px]')
+            company_name = company_name_element.text.strip() if company_name_element else "N/A"
+
+            forecast_section = soup.find('div', class_='p-3 md:flex md:space-x-4 md:p-0 lg:block lg:max-w-[32%] lg:space-x-0')
+            stock_price_forecast = forecast_section.text.strip() if forecast_section else "N/A"
+            
+            ratings_section = soup.find('p', {'data-test': 'forecast-ratings-snippet'})
+            analyst_ratings = ratings_section.text.strip() if ratings_section else "N/A"
+
+        except AttributeError as e:
+            st.error(f"Could not find the required data on the page. Error: {e}")
+            return
+
         # Display the information along with the link to open in the browser
         st.write(f"Company Name: {company_name}")
         st.write(f"Stock Price Forecast: {stock_price_forecast}")
         st.write(f"Analyst Ratings: {analyst_ratings}")
-        st.markdown(f"Open [Analyst Forecast]( {analyst_forecast_url} ) in your browser.")
-
+        st.markdown(f"Open [Analyst Forecast]({analyst_forecast_url}) in your browser.")
 
 
 # Main Streamlit app
